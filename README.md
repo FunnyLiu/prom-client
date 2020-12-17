@@ -1,3 +1,102 @@
+
+# 源码分析
+
+## 文件结构
+
+``` bash
+├── index.d.ts
+├── index.js - 入口文件
+├── lib
+|  ├── bucketGenerators.js
+|  ├── cluster.js
+|  ├── counter.js
+|  ├── defaultMetrics.js
+|  ├── gauge.js
+|  ├── histogram.js
+|  ├── metric.js
+|  ├── metricAggregators.js
+|  ├── metrics
+|  |  ├── eventLoopLag.js
+|  |  ├── gc.js
+|  |  ├── heapSizeAndUsed.js - 基于 process.memoryUsage()查看进程内存占用
+|  |  ├── heapSpacesSizeAndUsed.js - 基于node v8模块 v8.getHeapSpaceStatistics()获取v8的堆栈信息
+|  |  ├── helpers
+|  |  |  ├── processMetricsHelpers.js
+|  |  |  └── safeMemoryUsage.js
+|  |  ├── osMemoryHeap.js - 兼容非linux下通过node process.memoryUsage().rss拿常驻内存信息
+|  |  ├── osMemoryHeapLinux.js - linux下直接拿proc/self/status获取内存信息
+|  |  ├── processCpuTotal.js - 基于node process.cpuUsage()统计cpu。
+|  |  ├── processHandles.js - 基于process._getActiveHandles()获取工作中回调
+|  |  ├── processMaxFileDescriptors.js - 基于proc/self/limits来获取最大文件描述符的限制数量
+|  |  ├── processOpenFileDescriptors.js - 基于/proc/self/fd中文件数量来获取打开状态中的文件描述符数量
+|  |  ├── processRequests.js
+|  |  ├── processStartTime.js - 通过process.uptime()运行时间反差得到启动时间
+|  |  └── version.js
+|  ├── pushgateway.js
+|  ├── registry.js
+|  ├── summary.js
+|  ├── timeWindowQuantiles.js
+|  ├── util.js
+|  └── validation.js
+
+directory: 8 file: 72
+
+ignored: directory (1)
+
+```
+
+## 外部模块依赖
+
+![img](./outer.svg)
+
+## 内部模块依赖
+
+![img](./inner.svg)
+  
+## 知识点
+
+
+### 常驻内存信息process_resident_memory_bytes
+
+具体逻辑在osMemoryHeap.js中，非linux下通过node node process.memoryUsage().rss，linux下通过读取/proc/self/status 来直接读取node进程总内存占用量
+
+
+### cpu使用情况process_cpu_seconds_total
+
+具体逻辑在processCpuTotal.js中，基于node process.cpuUsage()统计cpu。
+
+### 最大文件描述符process_max_fds
+
+具体逻辑在processMaxFileDescriptors.js里，基于proc/self/limits来做的
+
+### 打开的文件描述符process_open_fds
+
+具体逻辑在processOpenFileDescriptors.js里，基于proc/self/fd的数量来做的。
+
+### 启动时间process_start_time_seconds
+
+具体逻辑在processStartTime.js里，通过process.uptime()运行时间反差得到启动时间。
+
+
+### v8堆栈情况
+
+具体逻辑在heapSpaceSizeAndUsed.js，基于node v8模块 v8.getHeapSpaceStatistics()获取v8的堆栈信息，包含总量及已使用。
+
+### node进程内存占用
+
+具体逻辑在heapSizeAndUsed.js里，基于process.memoryUsage()来查询内存占用。
+
+
+### node垃圾回收持续时间nodejs_gc_duration_seconds
+
+具体逻辑在gc.js，基于node perf_hooks模块来完成的。
+
+
+### node eventloop监控
+
+具体逻辑在eventLoopLag.js，基于perf_hooks和process模块共同来完成的
+
+
 # Prometheus client for node.js [![Actions Status](https://github.com/siimon/prom-client/workflows/Node.js%20CI/badge.svg?branch=master)](https://github.com/siimon/prom-client/actions)
 
 A prometheus client for Node.js that supports histogram, summaries, gauges and
